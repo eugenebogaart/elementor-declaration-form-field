@@ -8,21 +8,34 @@ The second column is description
 The third is mileage 
 The fourth is an amount
 
+# Column 0
+
+Just the row number
+
+# Column 1
+
+A date field 
+
+# Column 2
+
+A text Field
+
+
 # Column 3, Mileage
 
-The mileage in column 3 is multiplied by a Mileage_Ratio, and injected into the 4th column.
-The  Mileage_Ratio is editable n the From controls.   
+A number fields for mileage. This field is multiplied by a Mileage_Ratio, and injected into the 4th column.
+The Mileage_Ratio is editable in the From controls.   
 
 If colunm 3 has a value greater then zero, the field in column 4 is made readonly to prevent 
 manaual override. If the mileage in column 3 is set to zero or removed, then value in column 4 is
 removed and the field becomes writeable again. 
 
-After every change of value in column 4, the function 'calculateTotal()' is triggered. 
+After every change of value in column 4, the function ```calculateTotal()``` is triggered. 
 
 
 # Column 4, Total
 
-Any change in the column 4 fields will trigger calculateTotal(). In the Form control can be specified 
+Any change in the column 4 fields will trigger ```calculateTotal()```. In the Form control can be specified 
 in which field the sum needs to be injected. The sum field becomes readonly to prevent manual override.
 
 The fields in column 4 have hard coded nl_NL decimal seperator. 
@@ -33,11 +46,10 @@ Also deny all input in the last column which not a number.
 
 Many actions after submission require all fields be one dimensional (can not handle Arrays) and the fields need to be defined at design time.  Fields created on the fly are often not recoqnized. So e.g E2PDF needs to connect the designed form to a PDF template and ignores any on the fly created fields. 
 
-In order to overcome this, one need to create hidden fields at design time for every row and column. The naming of these fields should be something like:    Your-form-field-name_r0_c0   (times $row * $col)
+In order to overcome this, one need to create hidden fields at design time for every row and column. Name this hidden fields appropriate. Under Form control under Advanced -> Field_id provide the naming:  ```Your-form-field-name_r0_c0```   (times $row * $col)
 
 
-If you want to name you hidden fields differently then you need to edit the function below.  This function hooks into the $ajax_handler 
-and copies the values form this Form Field into the hidden fields
+If you want different Field_id names for you hidden fields, then you need to edit the function below. This function hooks into the ```$ajax_handler```  of the Elementor Form processing.  The function copies the values form the Form Field into the hidden fields
 
 
 ```php
