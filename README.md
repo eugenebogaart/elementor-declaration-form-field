@@ -1,23 +1,23 @@
 # Costs reimbursement table with 4 columns for Wordpress Elementor Forms
 
-This is custom build Table with 4 column with entry fields. The number of rows is controlled by a variable in Form control. 
+This is a custom build table with 4 column with entry fields. The number of rows is controlled by a variable in Form control. 
 At the moment limited is set to 7.
 
 The first column is a date field
 The second column is description
 The third is mileage 
-The fourth is amount
+The fourth is an amount
 
 # Column 3, Mileage
 
-The mileage in column 3 is multiplied by a Mileage_Ratio, abd injected in to the fourth column.
+The mileage in column 3 is multiplied by a Mileage_Ratio, and injected into the 4th column.
 The  Mileage_Ratio is editable n the From controls.   
 
-When colun 3 has a value greater then zero, the field in column 4 is made readonly to prevent 
+If colunm 3 has a value greater then zero, the field in column 4 is made readonly to prevent 
 manaual override. If the mileage in column 3 is set to zero or removed, then value in column 4 is
 removed and the field becomes writeable again. 
 
-After every change of value in column 4, the 'calculateTotal()' is triggered. 
+After every change of value in column 4, the function 'calculateTotal()' is triggered. 
 
 
 # Column 4, Total
