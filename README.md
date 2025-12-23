@@ -1,4 +1,4 @@
-# Costs reimbursement table with 4 column Nummber field for Wordpress Elementor Forms
+# Costs reimbursement table with 4 columns for Wordpress Elementor Forms
 
 This is custom build Table with 4 column with entry fields. The number of rows is controlled by a variable in Form control. 
 At the moment limited is set to 7.
