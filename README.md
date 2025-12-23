@@ -31,9 +31,9 @@ Also deny all input in the last column which not a number.
 
 # Mapping Rows and Colmns a clean submission.
 
-Many actions after submission require all fields be one dimensional (can not handle Arrays) and the fields niet to be defined at design time.  Fields created on the fly are often not recoqnized. So e.g E2PDF needs to connect the designed form to a PDF template. 
+Many actions after submission require all fields be one dimensional (can not handle Arrays) and the fields need to be defined at design time.  Fields created on the fly are often not recoqnized. So e.g E2PDF needs to connect the designed form to a PDF template and ignores any on the fly created fields. 
 
-In order to overcome this, one need sto create hidden fields at design time for every row and column. The naming of these fields should be something like:    Your-form-field-name_r0_c0   (times $row * $col)
+In order to overcome this, one need to create hidden fields at design time for every row and column. The naming of these fields should be something like:    Your-form-field-name_r0_c0   (times $row * $col)
 
 
 If you want to name you hidden fields differently then you need to edit the function below.  This function hooks into the $ajax_handler 
