@@ -1,27 +1,31 @@
 # Costs reimbursement table with 4 columns for Wordpress Elementor Forms
 
-This is a custom build table with 4 column with entry fields. The number of rows is controlled by a variable in Form control. 
-At the moment limited is set to 7.
+This is a custom build table with 4 columns with entry fields. The number of rows is controlled by a variable in Form control. 
+At the moment limited is set to 7 rows.
 
-The first column is a date field
-The second column is description
-The third is mileage 
-The fourth is an amount
+- first column is a date field
+- second column is description
+- third is mileage 
+- fourth is an amount
 
-# Column 0
+## Technology background
+
+Implements Custom Field and a new Field Code that addresses array indeces. Most of the code was inspired by Google Gemini, but some of the hooks are different because the standard Elementor documentation is out of date and/or incorrect: 
+https://developers.elementor.com/
+
+### Column 0
 
 Just the row number
 
-# Column 1
+### Column 1
 
 A date field 
 
-# Column 2
+### Column 2
 
 A text Field
 
-
-# Column 3, Mileage
+### Column 3, Mileage
 
 A number fields for mileage. This field is multiplied by a Mileage_Ratio, and injected into the 4th column.
 The Mileage_Ratio is editable in the From controls.   
@@ -33,7 +37,7 @@ removed and the field becomes writeable again.
 After every change of value in column 4, the function ```calculateTotal()``` is triggered. 
 
 
-# Column 4, Total
+### Column 4, Total
 
 Any change in the column 4 fields will trigger ```calculateTotal()```. In the Form control can be specified 
 in which field the sum needs to be injected. The sum field becomes readonly to prevent manual override.
@@ -42,56 +46,110 @@ The fields in column 4 have hard coded nl_NL decimal seperator.
 Also deny all input in the last column which not a number.
 	
 
-# Mapping Rows and Colmns a clean submission.
+## Mapping Rows and Colmns a clean submission.
 
-Many actions after submission require all fields be one dimensional (can not handle Arrays) and the fields need to be defined at design time.  Fields created on the fly are often not recoqnized. So e.g E2PDF needs to connect the designed form to a PDF template and ignores any on the fly created fields. 
+Many actions after submission require all fields be one dimensional (can not handle Arrays). The standard ```[field id="your_id"]``` will show concatination of the array field in a string seperated by commas.  In order to address the individual array elements a new fieldcode is introduced: ```[array_index id="your_id" index="3"]```.   
 
-In order to overcome this, one need to create hidden fields at design time for every row and column. Name this hidden fields appropriate. Under Form control under Advanced -> Field_id provide the naming:  ```Your-form-field-name_r0_c0```   (times $row * $col)
-
-
-If you want different Field_id names for you hidden fields, then you need to edit the function below. This function hooks into the ```$ajax_handler```  of the Elementor Form processing.  The function copies the values form the Form Field into the hidden fields
-
+See below 2 code snippets that introduce a new Field Code. The First snippet captures the Form $record into a global variable. The second snippet handles the field code when found in an action.
 
 ```php
-function declaration_form_processing( $record, $ajax_handler ) {
-    // 1. Get all submitted fields from the record
-    $raw_fields = $record->get( 'fields' );
+// Step 1: Capture Elementor Form submission data globally
+// This hook ensures our shortcode can access the form data during email processing.
+add_action('elementor_pro/forms/record/actions_before', function($record, $handler) {
+    // Store formatted data (often comma-separated for multi-selects)
+    $GLOBALS['elementor_form_submission_data'] = $record->get('fields');
 
-    $update_required = false;
+	return $record;
+}, 10, 2);
+```
 
-	$nrcols = 4;
+```php
+// Step 2: Custom Shortcode to handle array fields by index or loop
+function elementor_form_indexed_array_field_shortcode($atts) {
+    $atts = shortcode_atts(
+        array(
+            'id' => '',          // The Field ID from Elementor (e.g., "my_checkbox_field")
+            'index' => null,     // Specific index (0-based) to retrieve. If null, loops through all.
+            'tag' => 'li',       // HTML tag for each item when looping (e.g., 'li', 'p', 'span')
+            'wrapper_tag' => 'ul', // HTML wrapper tag when looping (e.g., 'ul', 'ol', 'div')
+            'separator' => '',   // Separator for items when looping and no tags are used (e.g., ', ' or '<br>')
+            'display_empty' => 'false', // 'true' to show wrapper even if no values when looping
+            'fallback' => '',    // Text to display if the index is not found or no values
+        ),
+        $atts,
+        'array_index'
+    );
 
-    // 2. Loop through fields to find type 'MyField'
-    foreach ( $raw_fields as $id => $field ) {
-        if ( 'declaration_row' === $field['type'] ) {
-                // 3. Get the raw array of strings of everything in the table.
-                $raw_data = $field['raw_value'];
+    $field_id = $atts['id'];
+	
+    $requested_index = (isset($atts['index']) && is_numeric($atts['index'])) ? (int)$atts['index'] : null;
+    $output = '';
 
-                $size = count($raw_data);
+    // Ensure we have submission data
+    if (!isset($GLOBALS['elementor_form_submission_data'])) {
+        return $atts['fallback']; // No submission data available
+    }
 
-                if ($size  % $nrcols != 0 ) {
-                        error_log('Field Processing error, number of fields not a multitude of '. $nrcols. ':' .  $size); 
-                } else {
-                         // 4. Iterate over all rows and cols
-                        for ($row = 0; $row < intdiv($size, $nrcols); $row++) {
-                                for ($col =  0; $col < $nrcols; $col++ ) {
+    $submission_data = $GLOBALS['elementor_form_submission_data'];
+	
+    // Check if the specific field exists in the submission
+    if (!isset($submission_data[$field_id])) {
+        return $atts['fallback']; // Field not found in submission
+    }
 
-                                        $id = $field['id'] . '_r' . $row . '_c' . $col;
+    $field_value_array = $submission_data[$field_id];
+	
+	$values = $field_value_array['raw_value'];
+	// Check if the field value is an Array
+	if (!is_array($field_value_array)) {
+		 return $atts['fallback']; // Field not found in submission
+	}
 
-                                        $newf = Array('id' => $id , 'type' => 'text', 'value' => $raw_data[$row* $nrcols + $col], 'raw_value' => $raw_data[$row* $nrcols + $col]);
-                                        $raw_fields[$id] = $newf;
-                                };
-                                $update_required = true;
-                        };
-                }
+    // --- Handle retrieval by index ---
+    if ($requested_index !== null) {
+        if (isset($values[$requested_index])) {
+            $output = esc_html($values[$requested_index]);
+        } else {
+            $output = $atts['fallback']; // Index not found
         }
     }
-    
-    // 5. Save the modified fields back to the record if changes were made
-    if ( $update_required ) {
-        $record->set( 'fields', $raw_fields );
+    // --- Handle looping through all values ---
+    else {
+        if (!empty($values) || $atts['display_empty'] === 'true') {
+            if (!empty($atts['wrapper_tag'])) {
+                $output .= '<' . esc_attr($atts['wrapper_tag']) . '>';
+            }
+
+            foreach ($values as $value) {
+                if (!empty($atts['tag'])) {
+                    $output .= '<' . esc_attr($atts['tag']) . '>' . esc_html($value) . '</' . esc_attr($atts['tag']) . '>';
+                } else {
+                    $output .= esc_html($value) . $atts['separator'];
+                }
+            }
+
+            if (!empty($atts['wrapper_tag'])) {
+                $output .= '</' . esc_attr($atts['wrapper_tag']) . '>';
+            } else if (!empty($atts['separator'])) {
+                // Remove trailing separator if no wrapper tag
+                $output = rtrim($output, $atts['separator']);
+            }
+        } else {
+             $output = $atts['fallback']; // No values to loop and not displaying empty
+        }
     }
-    return $record;
+
+    return $output;
 }
+add_shortcode('array_index', 'elementor_form_indexed_array_field_shortcode');
+
+// Step 3: Clean up the global variable after mail is sent
+//         Or after the last Action executed in your workflow
+//         In our case we use E2PDF which is fired from mail via [e2pdf-attachment id="9"]
+add_action('elementor_pro/forms/send_mail', function() {
+    if (isset($GLOBALS['elementor_form_submission_data'])) {
+        unset($GLOBALS['elementor_form_submission_data']);
+    }
+});
 ```
 
