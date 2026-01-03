@@ -1,7 +1,7 @@
 # Costs reimbursement table with 4 columns for Wordpress Elementor Forms
 
 This is a custom build table with 4 columns with entry fields. The number of rows is controlled by a variable in Form control. 
-At the moment limited is set to 7 rows.
+At the moment the limit is set to 7 rows, because the PDF template has a fixed number of rows.
 
 - first column is a date field
 - second column is description
@@ -10,8 +10,8 @@ At the moment limited is set to 7 rows.
 
 ## Technology background
 
-Implements Custom Field and a new Field Code that addresses array indeces. Most of the code was inspired by Google Gemini, but some of the hooks are different because the standard Elementor documentation is out of date and/or incorrect: 
-https://developers.elementor.com/
+Implements Custom Field and a new Field Code that addresses array indeces. Most of the code was created with the help of Google Gemini, but some of the suggest ion are different because the standard Elementor documentation is out of date and/or incorrect: 
+https://developers.elementor.com/  E.g. the hooks that are suggested to modify the submitted data before it is saved in the submission database, or send by email, are to late in the code (after execution of 'Action After Submit')
 
 ### Column 0
 
@@ -19,7 +19,7 @@ Just the row number
 
 ### Column 1
 
-A date field 
+A date field. If the date field has a value then the next field is required. 
 
 ### Column 2
 
@@ -28,26 +28,71 @@ A text Field
 ### Column 3, Mileage
 
 A number fields for mileage. This field is multiplied by a Mileage_Ratio, and injected into the 4th column.
-The Mileage_Ratio is editable in the From controls.   
+The javascript function ```calcKm()``` is executed after every change in column 3.  The Mileage_Ratio is editable in the From Controls.   
+
+![Mileage Ratio](assets/images/mileageratio.png)
 
 If colunm 3 has a value greater then zero, the field in column 4 is made readonly to prevent 
-manaual override. If the mileage in column 3 is set to zero or removed, then value in column 4 is
+manual override. If the mileage in column 3 is set to zero or removed, then value in column 4 is
 removed and the field becomes writeable again. 
 
-After every change of value in column 4, the function ```calculateTotal()``` is triggered. 
+After every change of value in column 4, the function ```calculateTotal()``` is triggered.
 
 ### Column 4, Total
 
 Any change in the column 4 fields will trigger ```calculateTotal()```. In the Form control can be specified 
-in which field the sum needs to be injected. The sum field becomes readonly to prevent manual override.
+in which field the sum needs to be injected. 
+
+![Mileage Ratio](assets/images/totaalfield.png)
+
+The sum field should be a Text input with a label and can be anywhere in your form. The label string is the reference in above Form Control. The Form Field with the sum of column 4 becomes readonly to prevent manual override.
 
 The fields in column 4 have hard coded nl_NL decimal seperator. 
-Also deny all input in the last column which not a number.
+It is also prevented that the last column is not a number.
 	
+
+## CalculateTotal()
+
+This is in JavaScript in a seperate file under assets. Some notes: The column 4 fields in the DOM are queried by CSS class. The retionale here is that 'id' and 'name' are not the same while displayed in the Form Builder versus actual deployment.    
+
+```JavaScript
+function calculateTotal(evt) {	
+    const amountInputs = document.querySelectorAll('.es-input-amount-declaration-field');	
+    const totalFieldId  = findTotalFieldId(evt.currentTarget.dataset.total);
+    const totalField  = document.getElementById(totalFieldId);
+    totalField.readOnly = true;
+    let sum = 0;
+    
+    amountInputs.forEach(input => {
+        let val = input.value;
+        // Dutch format: remove thousands separator (.), replace decimal comma (,) with dot (.)
+        val = val.replace(/\./g, '').replace(',', '.');
+        const numberValue = parseFloat(val);
+        if (!isNaN(numberValue)) { sum += numberValue; }
+    });
+    totalField.value = dutchFormatter.format(sum);
+}
+```
+
+## CalcKM()
+
+Also a Javscript asset. Same story here: form input fields are looked up by CSS class name.
+
+```JavaScript
+function calcKm(evt) {
+    const ratio = evt.currentTarget.dataset.mileageratio;
+    const kmInputs = document.querySelectorAll('.es-input-km-declaration-field');
+	const amountOutputs = document.querySelectorAll('.es-input-amount-declaration-field');
+
+    kmInputs.forEach((element, index ) => {
+        calAndMap(element, ratio, amountOutputs[index]);
+    });
+}
+```
 
 ## Mapping Rows and Columns in Email and PDF templates.
 
-Many actions after form submit require all fields be one dimensional (can not handle Arrays). The standard ```[field id="your_id"]``` will show concatenated array fields in a string. In order to access the individual array elements in a fieldcode, we introduce a new fieldcode type: ```[array_index id="your_id" index="3"]```.   
+Many actions after form submit require all fields be one dimensional (can not handle Arrays). The standard ```[field id="your_id"]``` will show concatenated array fields in a string seperated by commas. In order to access the individual array elements in a fieldcode, we introduce a new fieldcode type: ```[array_index id="your_id" index="3"]```.   
 
 See below 2 code snippets that introduce a new Field Code type. The First snippet captures the Form $record into a global variable because we need the Record while processing the field codes. The second snippet handles the field code when found in an action.
 
@@ -151,6 +196,3 @@ add_action('elementor_pro/forms/send_mail', function() {
     }
 });
 ```
-
-
-### Sample Email  
