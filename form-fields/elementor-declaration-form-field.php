@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Fields\Field_Base {
 
+
 	public function get_type() {
 		return 'declaration_row';
 	}
@@ -28,19 +29,17 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 	public function render( $item, $item_index, $form ) {
 		$id_base = $item['custom_id'];
 
-		//error_log("Rendering 'Row (Date, Text, Number)" . print_r($form, true));
-
 		// Retrieve widths from controls
 		$w1 = isset($item['col1_width']['size']) ? $item['col1_width']['size'] . $item['col1_width']['unit'] : '15%';
 		$w2 = isset($item['col2_width']['size']) ? $item['col2_width']['size'] . $item['col2_width']['unit'] : '53%';
 		$w3 = isset($item['col3_width']['size']) ? $item['col3_width']['size'] . $item['col3_width']['unit'] : '10%';
-		$w4 = isset($item['col3_width']['size']) ? $item['col3_width']['size'] . $item['col3_width']['unit'] : '22%';
+		$w4 = isset($item['col4_width']['size']) ? $item['col4_width']['size'] . $item['col4_width']['unit'] : '22%';
 
 		$rows = isset($item['rows_number']) ? $item['rows_number'] : 3; 
 
 		?>		
 		<div class="e-form-declaration-wrapper">
-			<table class="es-table-declaration-field">   <!-- <div class="e-form-declaration-wrapper"> -->
+			<table class="es-table-declaration-field" name="form_fields[<?php echo $id_base; ?>]">  
 				<thead>
 					<tr>
 						<!-- Applied width classes here -->
@@ -66,6 +65,8 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 								type="date" 
 								name="form_fields[<?php echo $id_base; ?>][]" 
 								class="es-input-declaration-field"
+								oninput="setDate(event)"
+								data-omschrijvingid="form-field-<?php echo $id_base ."-date-r" . $i ?>" 
 								placeholder="<?php echo esc_attr( $item['col1_placeholder'] ); ?>" 
 								<?php echo $item['required'] ? 'required' : ''; ?>
 							>
@@ -75,6 +76,7 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 							<input 
 								type="text" 
 								name="form_fields[<?php echo $id_base; ?>][]" 
+								id="form-field-<?php echo $id_base ."-date-r" . $i ?>" 
 								class="es-input-declaration-field"
 								placeholder="<?php echo esc_attr( $item['col2_placeholder'] ); ?>" 
 								<?php echo $item['required'] ? 'required' : ''; ?>
@@ -87,17 +89,21 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 								name="form_fields[<?php echo $id_base; ?>][]" 
 								class="es-input-declaration-field es-input-km-declaration-field"
 								onkeyup="onKeyKmUp(event)" 
+								oninput="calcKm(event)"
+								data-mileageratio="<?php echo $item['km_ratio'];?>"
 								placeholder="<?php echo esc_attr( $item['col3_placeholder'] ); ?>" 
 								<?php echo $item['required'] ? 'required' : ''; ?>
 							>
 						</td>
-						<!-- Input 3: Number -->
+						<!-- Input 4: Text -->
 						<td class="es-cell-declaration-field">
 							<input 
 								type="text" 
 								name="form_fields[<?php echo $id_base; ?>][]" 
 								class="es-input-declaration-field es-input-amount-declaration-field"
 								onkeyup="onKeySumUp(event)" 
+								oninput="calculateTotal(event)"
+								data-total="<?php  echo $item['label_name_total_field'];?>"
 								placeholder="<?php echo esc_attr( $item['col4_placeholder'] ); ?>" 
 								<?php echo $item['required'] ? 'required' : ''; ?>
 							>
@@ -106,146 +112,47 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 				<?php endfor; ?>
 			</table>
 		</div>
-		<?php /** $this->totalField($id_base);*/ ?>
-		<?php $this->sumTotaal($item['field_id_total']); ?>
-		<?php $this->calcKm($item['km_ratio']); ?>
-		<?php
-	}
-
-	function totalField($id_base) { 
-		?>
-			<div class="e-form-declaration-wrapper-right">	
-				<div class="es-total-container-declaration-field">
-					<input type="hidden" id="total-hidden-declaration-field" name="form_fields[<?php echo $id_base; ?>][]"> Totaal: € <span id="total-display-declaration-field">0,00</span>
-				</div>
-			</div>
 		<?php
 	}
 
 	/**
-	 * Calculate the sum of the last column with amount. Deny all input in the last column which not a number.
-	 * Also accept only the nl_NL decimal seperator.
+	 * Validation Logic & Declaration Field should not use Required! 
 	 * 
-	 * The sum value will be displayed in field that is configured in Form Control:  'field_id_total'. 
-	 * The sum field becomes readonly to prevent manual override.
-	 */
-	function sumTotaal($id_totaal) {
-		$total_field = 'form-field-' . $id_totaal;
-		?>
-		<script>
-				const onKeySumUp = event => {
-   					 event.target.value = event.target.value.replace(/[^,0-9+]/g, '')
-				}
-
-				const amountInputs = document.querySelectorAll('.es-input-amount-declaration-field');
-				// const totalDisplay = document.getElementById('total-display-declaration-field');
-				// const totalHidden  = document.getElementById('total-hidden-declaration-field');
-
-				const dutchFormatter = new Intl.NumberFormat('nl-NL', {
-					minimumFractionDigits: 2,
-					maximumFractionDigits: 2,
-				});
-
-				function calculateTotal() {
-					const totalField  = document.getElementById('<?php echo $total_field; ?>');
-					totalField.readOnly = true;
-
-					let sum = 0;
-					
-					amountInputs.forEach(input => {
-						let val = input.value;
-						// Dutch format: remove thousands separator (.), replace decimal comma (,) with dot (.)
-						val = val.replace(/\./g, '').replace(',', '.');
-						
-						const numberValue = parseFloat(val);
-
-						if (!isNaN(numberValue)) {
-							sum += numberValue;
-						}
-					});
-					// totalDisplay.textContent = dutchFormatter.format(sum);
-					//console.log("Hidden value before: ", totalHidden.value);
-					// totalHidden.value = dutchFormatter.format(sum);
-					//console.log("Hidden value after: ", totalHidden.value);
-					totalField.value = dutchFormatter.format(sum);
-				}
-				amountInputs.forEach(input => {
-					input.addEventListener('input', calculateTotal);
-				});
-		</script>
-		<?php
-	}
-
-	/** 
-	 *  NUmbers in the 3rd column are mileage. The mileage is multiplied by Mileage_Ratio
-	 *  and injected in the same row 4th column.
-	 *  At that time the field in column 4 is made readonly to prevent manaual override of 
-	 *  Mileage_Ratio. The Mileage_Ratio can be set in the FormField controls.
-	 *  If the mileage in column 3 is set to zero or removed, then value in column 4 is
-	 *  removed and the field becomes writeable again. 
-	 * 
-	 *  After every change of value in column 4, the 'calculateTotal()' is triggered. 
-	 */
-	function calcKm($mileage_rate) {
-		$ratio_value = isset($mileage_rate) ? $mileage_rate : -1; 
-		?>
-		<script>
-			const onKeyKmUp = event => {
-   					 event.target.value = event.target.value.replace(/[^,0-9+]/g, '')
-				}
-
-			const kmInputs = document.querySelectorAll('.es-input-km-declaration-field');
-			const amountOutputs = document.querySelectorAll('.es-input-amount-declaration-field');
-
-			function calAndMap(item, index, arr) {
-				console.log("Running calAndMap per field for:", typeof item.value, 'value:', item.value );
-				if ( item.value != '' &&  item.value > 0) {
-					// console.log("Assigning calculation");
-  					amountOutputs[index].value = dutchFormatter.format(item.value * <?php echo $ratio_value; ?>);
-					amountOutputs[index].readOnly = true;
-					calculateTotal();
-				} else if ( item.value == 0) {
-					// console.log("Skipping calculation, value is", item.value);
-					amountOutputs[index].value = dutchFormatter.format(0);
-					amountOutputs[index].readOnly = false;
-					calculateTotal();
-				} else {
-					// console.log("Skipping calculation, no value", item.value);
-					amountOutputs[index].value = dutchFormatter.format(0);
-					amountOutputs[index].readOnly = false;
-					calculateTotal();
-					
-				}
-			}
-
-			function calcKm() {
-				kmInputs.forEach(calAndMap);
-				calculateTotal();
-			}
-
-			kmInputs.forEach(input => {
-					input.addEventListener('input', calcKm);
-			});
-		</script>
-		<?php
-	}
-
-	/**
-	 * Validation Logic
 	 */
 	public function validation( $field, $record, $ajax_handler ) {
-		if ( empty( $field['required'] ) ) {
-			return;
-		}
-		$values = $field['value']; 
-		if ( is_array( $values ) ) {
-			foreach ( $values as $v ) {
-				if ( empty( $v ) ) {
-					$ajax_handler->add_error( $field['id'], esc_html__( 'All 3 fields are required.', 'elementor-declaration-field' ) );
-					return;
+		error_log("Declaration Form validation!" . $field['id']);
+		error_log("Field: ". print_r($field, true));
+		// if ( empty( $field['required'] ) ) {
+		// 	return;
+		// }
+
+		$raw_values = $field['raw_value'];
+		$rows = intdiv(count($raw_values),4);
+		for($i = 0; $i < $rows; $i++) {
+			error_log("Validating row:" . $i);
+			if ( !empty($raw_values[ $i * $rows]) ){
+				error_log("First cell is not empty:" . $raw_values[ $i * $rows]);
+				if (empty($raw_values[ $i * $rows + 1])) {
+					error_log("Second cell is empty:" . $raw_values[ $i * $rows + 1]);
+					$ajax_handler->add_error( $field['id'] . "-date-r1", esc_html__( 'Omschrijving mag niet leeg zijn', 'elementor-declaration-field' ) );
+
+					// $ajax_handler->add_error(
+					// 	$field['id'],
+					// 	esc_html__( 'IBAN nummer ongeldig.', 'elementor-form-IBAN-NL-field' )
+					// );
 				}
 			}
-		}
+		};
+		// $values = $field['value']; 
+		// if ( is_array( $values ) ) {
+		// 	foreach ( $values as $v ) {
+		// 		if ( empty( $v ) ) {
+		// 			$ajax_handler->add_error( $field['id'], esc_html__( 'All 3 fields are required.', 'elementor-declaration-field' ) );
+		// 			return;
+		// 		}
+		// 	}
+		// }
+		return;
 	}
 
 	/**
@@ -387,7 +294,7 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 				'label' => esc_html__( 'Euro per KM', 'elementor-declaration-field' ),
 				'type' => \Elementor\Controls_Manager::NUMBER,
 				'condition' => [ 'field_type' => $this->get_type() ],
-				'default' => 0.23,
+				//'default' => 0.23,
 			],
 			'col4_heading' =>
 			[	'name' => 'col4_heading',
@@ -420,15 +327,15 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 			[	'name' => 'col4_placeholder',
 				'label' => esc_html__( 'Placeholder', 'elementor-declaration-field' ),
 				'type' => \Elementor\Controls_Manager::TEXT,
-				'default' => '0',
+				'default' => '0,00',
 				'condition' => [ 'field_type' => $this->get_type() ],
 				'tab' => 'content',
 				'inner_tab' => 'form_fields_content_tab',
 				'tabs_wrapper' => 'form_fields_tabs',
 			],
-			'field_id_total' =>
-			[	'name' => 'field_id_total',
-				'label' => esc_html__( 'ID Total field', 'elementor-declaration-field' ),
+			'label_name_total_field' =>
+			[	'name' => 'label_name_total_field',
+				'label' => esc_html__( 'Label name Total field', 'elementor-declaration-field' ),
 				'type' => \Elementor\Controls_Manager::TEXT,
 				'condition' => [ 'field_type' => $this->get_type() ],
 			],
@@ -486,54 +393,40 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 		<script type="text/javascript">
 			
 			jQuery( document) .ready( () => {
-				console.log("Adding hook for 3 col template");
+				// console.log("Adding hook for 3 col template");
 
 				elementor.hooks.addFilter(
 					'elementor_pro/forms/content_template/field/<?php echo $this->get_type(); ?>',
 					function ( inputField, item, i ) {
 						const field1Type = 'date';
-						const field1Class = "elementor-field elementor-field-textual e-col-1";
+						const field1Class = "es-input-declaration-field";
 						const field1Width = item['col1_width']['size'] + item['col1_width']['unit'];
-						const field1Name = item['declaration_row'];
+						const field1Name = "form_fields[" + item['custom_id'] + "][]";
 						const field1Placeholder = item['col1_placeholder'];
 						const field2Type = 'text';
-						const field2Class = "elementor-field elementor-field-textual e-col-2";
+						const field2Class = "es-input-declaration-field";
 						const field2Width = item['col2_width']['size'] + item['col2_width']['unit'];
-						const field2Name = item['declaration_row'];
+						const field2Name = "form_fields[" + item['custom_id'] + "][]";
 						const field2Placeholder = item['col2_placeholder'];
 						const field3Type = 'number';
-						const field3Class = "elementor-field elementor-field-textual e-col-3";
+						const field3Class = "es-input-declaration-field es-input-km-declaration-field";
 						const field3Width = item['col3_width']['size'] + item['col3_width']['unit'];
-						const field3Name = item['declaration_row'];
+						const field3Name = "form_fields[" + item['custom_id'] + "][]";
+						const field3MileageRatio =  item['km_ratio'];
 						const field3Placeholder = item['col3_placeholder'];
-						const field4Type = 'number';
-						const field4Class = "elementor-field elementor-field-textual e-col-3";
+						const field4Type = 'text';
+						const field4Class = "es-input-declaration-field es-input-amount-declaration-field";
 						const field4Width = item['col4_width']['size'] + item['col4_width']['unit'];
-						const field4Name = item['declaration_row'];
+						const field4Name = "form_fields[" + item['custom_id'] + "][]";
+						const field4Total = item['label_name_total_field'];
 						const field4Placeholder = item['col4_placeholder'];
-						const rows = item['rows_number']; 
+						const rows = item['rows_number'] == null ? 3 : item['rows_number']; 
 						const total = 100;
+						const ratio_value = item['km_ratio'] == null ? 0 :item['km_ratio'];
+						
+						var lines = [...Array(rows).keys()];
 
-						var tablerows = ``
-						for (let i = 1; i <= rows; i++) {
-								tablerows= tablerows + `
-									<tr>
-										<td class="es-cell-declaration-field es-line-number-declaration-field">${i}</td>
-										<td class="es-cell-declaration-field">
-											<input type="${field1Type}" class="${field1Class}" placeholder="${field1Placeholder}" required>
-										</td>
-										<td class="es-cell-declaration-field">
-											<input type="${field2Type}" class="${field2Class}" placeholder="${field2Placeholder}" required>
-										</td>
-										<td class="es-cell-declaration-field">
-											<input type="${field3Type}" class="${field3Class}" placeholder="${field3Placeholder}" required>
-										</td>
-										<td class="es-cell-declaration-field">
-											<input type="${field4Type}" class="${field4Class}" placeholder="${field4Placeholder}" required>
-										</td>
-									</tr>`;
-						}
-						return `
+						return  `
 						<div class="e-form-declaration-wrapper">
 							<table class="es-table-declaration-field"> 
 								<tr>
@@ -546,175 +439,46 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 											style="width: ${field3Width};">Aantal km&ast;</th>
 									<th class="es-header-declaration-field es-w-20-declaration-field"
 											style="width: ${field4Width};">Bedrag (€)</th>
-								</tr>
-								` 
-								+ tablerows +
+								</tr>` +
+								lines.map(function (row) {
+									return `<tr>
+												<td class="es-cell-declaration-field es-line-number-declaration-field">${row}</td>
+												<td class="es-cell-declaration-field">
+													<input name="${field1Name}" type="${field1Type}" class="${field1Class}" placeholder="${field1Placeholder}" required>
+												</td>
+												<td class="es-cell-declaration-field">
+													<input name="${field2Name}" type="${field2Type}" class="${field2Class}" placeholder="${field2Placeholder}" required>
+												</td>
+												<td class="es-cell-declaration-field">
+													<input name="${field3Name}" type="${field3Type}" class="${field3Class}" onkeyup="onKeyKmUp(event)" oninput="calcKm(event)" data-mileageratio="${field3MileageRatio}" placeholder="${field3Placeholder}" required>
+												</td>
+												<td class="es-cell-declaration-field">
+													<input name="${field4Name}" type="${field4Type}" class="${field4Class}" onkeyup="onKeySumUp(event)" oninput="calculateTotal(event)" data-total="${field4Total}" placeholder="${field4Placeholder}" required>
+												</td>
+											</tr>`
+								}).reduce(function(total, line) {
+									return total + line;
+								})
+								+
 							`</table>
-						</div>
-						<div class="e-form-declaration-wrapper-right">	
-							<div class="es-total-container-declaration-field">
-								Totaal: € <span id="total-display-declaration-field">${total}</span>
-							</div>
-						</div>`;
+						</div>` ;
 					}, 10,3
 				);
-			});
-
+			});	
 		</script>
 		<?php
 	}
-
-
-	// /**
-	//  * Data Processing (Flatten array to string)
-	//  */
-	// public function process_field( $field, \ElementorPro\Modules\Forms\Classes\Form_Record $record, \ElementorPro\Modules\Forms\Classes\Ajax_Handler $ajax_handler ) {
-
-	// 	$raw_value = $field['value'];
-	// 	if ( is_array( $raw_value ) ) {
-	// 		$sanitized_values = array_map( 'sanitize_text_field', $raw_value );
-	// 		$field['value'] = implode( ' | ', $sanitized_values );
-	// 	}
-	// 	$record->update_field( $field['id'], 'value', $field['value'] );
-	// }
 }
 
-/**
- * Load Styles for Frontend and Editor
- */
-function elementor_declaration_field_styles() {
-	?>
-	<style>
-		.e-form-declaration-wrapper {
-			display: flex;
-			flex-wrap: nowrap; /* Keep on one line */
-			gap: 5px; /* Small gap between fields */
-			width: 100%;
-			box-sizing: border-box;
-		}
-
-		.es-table-declaration-field  {
-			width: 100%;
-			border-collapse: collapse;
-			margin-bottom: 20px;
-			table-layout: fixed; /* Ensures percentages are respected strictly */
-		}	
-
-		/* Column Width Classes */
-    	.es-w-5-declaration-field  { width: 5%; }
-    	.es-w-22-declaration-field { width: 22%; }
-    	.es-w-53-declaration-field { width: 53%; }
-    	.es-w-20-declaration-field { width: 20%; }
-
-		.es-table-declaration-field {
-			width: 100%;
-			border-collapse: collapse;
-			margin-bottom: 20px;
-			table-layout: fixed; /* Ensures percentages are respected strictly */
-    	}
-
-		.es-header-declaration-field, 
-    	.es-cell-declaration-field {
-			border: 1px solid #999;
-			padding: 0;
-			margin: 0;
-			vertical-align: middle;
-   	 	}
-
-
-		.es-input-declaration-field  {
-			width: 100%;
-			
-			/* 
-			* FIX FOR HEIGHTS: 
-			* Setting a specific pixel height ensures the Date input 
-			* is exactly the same height as the Text input.
-			*/
-			height: 36px; 
-			line-height: 36px;
-
-			display: block;
-			margin: 0;
-			padding: 0 6px; /* Horizontal padding only */
-			
-			border: none;
-			border-radius: 0;
-			outline: none;
-			box-sizing: border-box;
-
-			background-color: #e6f7ff;
-			color: #000;
-			font-size: 14px;
-			font-family: inherit;
-			padding: .25rem 0.25rem;
-		}
-
-		/* Remove default webkit appearance for date inputs to ensure height matches text */
-		input[type="date"].es-input-declaration-field  {
-			-webkit-appearance: none;
-			appearance: none;
-			/* Re-apply flex centering for date internals if needed by browser */
-			display: flex; 
-			align-items: center; 
-			padding: .25rem 0.25rem;
-		}
-
-		.es-input-declaration-field :focus {
-			background-color: #fff;
-			box-shadow: inset 0 0 0 2px #007BFF;
-			/* padding: 8px 4px; */
-			padding: .25rem 0.25rem;
-		}
-
-		/* Specific Cell Styles */
-		.es-line-number-declaration-field {
-			text-align: center;
-			background-color: #f9f9f9;
-			font-size: 14px;
-		}
-
-		.es-input-amount-declaration-field {
-			text-align: right;
-			padding: .25rem 0.25rem;
-		}
-
-		.e-form-declaration-wrapper-right {
-			display: flex;
-			flex-direction: row;
-			justify-content: right;
-			flex-wrap: nowrap; /* Keep on one line */
-			gap: 5px; /* Small gap between fields */
-			width: 100%;
-			box-sizing: border-box;
-			padding: .25rem 0.25rem;
-		}
-
-		/* Total Section */
-		.es-total-container-declaration-field {
-			text-align: right;
-			font-size: 1.2em;
-			font-weight: bold;
-			padding: 10px;
-			background-color: #e9ecef;
-			border-radius: 4px;
-			border: 1px solid #ddd;
-			color: #333;
-			display: flex;
-		}
-		
-		/* Default stacking for mobile */
-		@media (max-width: 767px) {
-			.e-form-declaration-wrapper {
-				flex-direction: column;
-			}
-			.e-form-declaration-wrapper input {
-				width: 100% !important;
-				margin-bottom: 10px;
-			}
-		}
-	</style>
-	<?php
+function declaration_form_field_styles_and_scripts() {
+	error_log("Register Styles & Scripts");
+	wp_register_style('style-1', 
+		plugins_url( 'assets/css/declaration_form_field.css', __DIR__ ), Array(), '1.0', false
+	);
+	wp_enqueue_style('style-1');
+	wp_register_script( 'editor-script-1', 
+		plugins_url( 'assets/js/declaration_form_field.js', __DIR__ ), Array(), '1.7', false
+	);
+	wp_enqueue_script( 'editor-script-1' );
 }
-
-add_action( 'wp_enqueue_scripts', 'elementor_declaration_field_styles' );
-add_action( 'elementor/editor/after_enqueue_styles', 'elementor_declaration_field_styles' );
+add_action('wp_enqueue_scripts', 'declaration_form_field_styles_and_scripts');

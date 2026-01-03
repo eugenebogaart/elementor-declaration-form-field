@@ -36,7 +36,6 @@ removed and the field becomes writeable again.
 
 After every change of value in column 4, the function ```calculateTotal()``` is triggered. 
 
-
 ### Column 4, Total
 
 Any change in the column 4 fields will trigger ```calculateTotal()```. In the Form control can be specified 
@@ -46,11 +45,11 @@ The fields in column 4 have hard coded nl_NL decimal seperator.
 Also deny all input in the last column which not a number.
 	
 
-## Mapping Rows and Colmns a clean submission.
+## Mapping Rows and Columns in Email and PDF templates.
 
-Many actions after submission require all fields be one dimensional (can not handle Arrays). The standard ```[field id="your_id"]``` will show concatination of the array field in a string seperated by commas.  In order to address the individual array elements a new fieldcode is introduced: ```[array_index id="your_id" index="3"]```.   
+Many actions after form submit require all fields be one dimensional (can not handle Arrays). The standard ```[field id="your_id"]``` will show concatenated array fields in a string. In order to access the individual array elements in a fieldcode, we introduce a new fieldcode type: ```[array_index id="your_id" index="3"]```.   
 
-See below 2 code snippets that introduce a new Field Code. The First snippet captures the Form $record into a global variable. The second snippet handles the field code when found in an action.
+See below 2 code snippets that introduce a new Field Code type. The First snippet captures the Form $record into a global variable because we need the Record while processing the field codes. The second snippet handles the field code when found in an action.
 
 ```php
 // Step 1: Capture Elementor Form submission data globally
@@ -74,7 +73,7 @@ function elementor_form_indexed_array_field_shortcode($atts) {
             'wrapper_tag' => 'ul', // HTML wrapper tag when looping (e.g., 'ul', 'ol', 'div')
             'separator' => '',   // Separator for items when looping and no tags are used (e.g., ', ' or '<br>')
             'display_empty' => 'false', // 'true' to show wrapper even if no values when looping
-            'fallback' => '',    // Text to display if the index is not found or no values
+            'fallback' => 'not found',    // Text to display if the index is not found or no values
         ),
         $atts,
         'array_index'
@@ -153,3 +152,5 @@ add_action('elementor_pro/forms/send_mail', function() {
 });
 ```
 
+
+### Sample Email  

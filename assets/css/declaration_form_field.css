@@ -1,0 +1,127 @@
+.e-form-declaration-wrapper {
+    display: flex;
+    flex-wrap: nowrap; /* Keep on one line */
+    gap: 5px; /* Small gap between fields */
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.es-table-declaration-field  {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    table-layout: fixed; /* Ensures percentages are respected strictly */
+}	
+
+/* Column Width Classes */
+.es-w-5-declaration-field  { width: 5%; }
+.es-w-22-declaration-field { width: 22%; }
+.es-w-53-declaration-field { width: 53%; }
+.es-w-20-declaration-field { width: 20%; }
+
+.es-table-declaration-field {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    table-layout: fixed; /* Ensures percentages are respected strictly */
+}
+
+.es-header-declaration-field, 
+.es-cell-declaration-field {
+    border: 1px solid #999;
+    padding: 0;
+    margin: 0;
+    vertical-align: middle;
+}
+
+
+.es-input-declaration-field  {
+    width: 100%;
+    
+    /* 
+    * FIX FOR HEIGHTS: 
+    * Setting a specific pixel height ensures the Date input 
+    * is exactly the same height as the Text input.
+    */
+    height: 36px; 
+    line-height: 36px;
+
+    display: block;
+    margin: 0;
+    padding: 0 6px; /* Horizontal padding only */
+    
+    border: none;
+    border-radius: 0;
+    outline: none;
+    box-sizing: border-box;
+
+    background-color: #e6f7ff;
+    color: #000;
+    font-size: 14px;
+    font-family: inherit;
+    padding: .25rem 0.25rem;
+}
+
+/* Remove default webkit appearance for date inputs to ensure height matches text */
+input[type="date"].es-input-declaration-field  {
+    -webkit-appearance: none;
+    appearance: none;
+    /* Re-apply flex centering for date internals if needed by browser */
+    display: flex; 
+    align-items: center; 
+    padding: .25rem 0.25rem;
+}
+
+.es-input-declaration-field :focus {
+    background-color: #fff;
+    box-shadow: inset 0 0 0 2px #007BFF;
+    /* padding: 8px 4px; */
+    padding: .25rem 0.25rem;
+}
+
+/* Specific Cell Styles */
+.es-line-number-declaration-field {
+    text-align: center;
+    background-color: #f9f9f9;
+    font-size: 14px;
+}
+
+.es-input-amount-declaration-field {
+    text-align: right;
+    padding: .25rem 0.25rem;
+}
+
+.e-form-declaration-wrapper-right {
+    display: flex;
+    flex-direction: row;
+    justify-content: right;
+    flex-wrap: nowrap; /* Keep on one line */
+    gap: 5px; /* Small gap between fields */
+    width: 100%;
+    box-sizing: border-box;
+    padding: .25rem 0.25rem;
+}
+
+/* Total Section */
+.es-total-container-declaration-field {
+    text-align: right;
+    font-size: 1.2em;
+    font-weight: bold;
+    padding: 10px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    color: #333;
+    display: flex;
+}
+
+/* Default stacking for mobile */
+@media (max-width: 767px) {
+    .e-form-declaration-wrapper {
+        flex-direction: column;
+    }
+    .e-form-declaration-wrapper input {
+        width: 100% !important;
+        margin-bottom: 10px;
+    }
+}
