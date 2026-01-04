@@ -125,3 +125,7 @@ input[type="date"].es-input-declaration-field  {
         margin-bottom: 10px;
     }
 }
+
+input[type=date]::-webkit-calendar-picker-indicator {
+  margin-left: -20px;
+}
