@@ -473,11 +473,11 @@ class Elementor_Declaration_Form_Field extends \ElementorPro\Modules\Forms\Field
 function declaration_form_field_styles_and_scripts() {
 	error_log("Register Styles & Scripts");
 	wp_register_style('style-1', 
-		plugins_url( 'assets/css/declaration_form_field.css', __DIR__ ), Array(), '1.4', false
+		plugins_url( 'assets/css/declaration_form_field.css', __DIR__ ), Array(), '1.15', false
 	);
 	wp_enqueue_style('style-1');
 	wp_register_script( 'editor-script-1', 
-		plugins_url( 'assets/js/declaration_form_field.js', __DIR__ ), Array(), '1.7', false
+		plugins_url( 'assets/js/declaration_form_field.js', __DIR__ ), Array(), '1.9', false
 	);
 	wp_enqueue_script( 'editor-script-1' );
 }
